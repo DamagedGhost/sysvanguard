@@ -1,13 +1,21 @@
-﻿#Requires -RunAsAdministrator
+#Requires -RunAsAdministrator
 <#
     sondeo.ps1 - Orquestador de SysVanguard
     Menu interactivo de presets (config/presets.psd1) + punto de
     restauracion como decision de sesion (no de preset, no de tweaks).
     Compatible con Windows PowerShell 5.1.
-#>
 
-$ScriptVersion = "0.5.0"
-$ErrorActionPreference = 'Stop'
+    Parametros:
+        -Preset <nombre>   Salta el menu interactivo y ejecuta el preset indicado.
+                           Nombres disponibles en config/presets.psd1 (ej: Rapido, Completo).
+#>
+param(
+    [string]$Preset = ""
+)
+
+$ScriptVersion = "0.6.0"
+# Continue: errores no fatales no matan el script; cada modulo maneja sus propios try/catch.
+$ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 Get-ChildItem "$root\modules\*.psm1" | ForEach-Object { Import-Module $_.FullName -Force }
@@ -24,6 +32,16 @@ $stepMap = [ordered]@{
 }
 
 function Show-Menu {
+    # Si se paso -Preset por CLI, usarlo directamente sin interaccion
+    if ($script:Preset -and $presets.Contains($script:Preset)) {
+        Write-Host "`n=== SONDEO SYSVANGUARD (v$ScriptVersion) ===" -ForegroundColor Yellow
+        Write-Host "Preset seleccionado via parametro: $($script:Preset)" -ForegroundColor DarkGray
+        return $presets[$script:Preset]
+    }
+    if ($script:Preset -and -not $presets.Contains($script:Preset)) {
+        Write-Host "Preset '$($script:Preset)' no encontrado. Presets disponibles: $($presets.Keys -join ', ')" -ForegroundColor Red
+    }
+
     Write-Host "`n=== SONDEO SYSVANGUARD (v$ScriptVersion) ===" -ForegroundColor Yellow
     $keys = @($presets.Keys)
     for ($i = 0; $i -lt $keys.Count; $i++) {
@@ -72,4 +90,55 @@ foreach ($pasoNombre in $preset.Pasos) {
 }
 
 $historyPath = Save-History $report $ScriptVersion
-New-HtmlReport $report $historyPath $ScriptVersion
+
+# ---------- Resumen final en consola ----------
+Write-Host "`n========================================" -ForegroundColor Yellow
+Write-Host "  RESUMEN DEL SONDEO - $env:COMPUTERNAME" -ForegroundColor Yellow
+Write-Host "========================================" -ForegroundColor Yellow
+
+if ($report.Contains('Defender')) {
+    $c = $report.Defender.Threats.Count
+    if ($c -eq 0) { Write-Host "  [OK]   Defender: sin amenazas" -ForegroundColor Green }
+    else           { Write-Host "  [ALERTA] Defender: $c amenaza(s) detectada(s)" -ForegroundColor Red }
+}
+if ($report.Contains('Persistence')) {
+    $s = @($report.Persistence | Where-Object Sospechoso).Count
+    if ($s -eq 0)       { Write-Host "  [OK]   Arranque: todos los items firmados" -ForegroundColor Green }
+    elseif ($s -le 3)   { Write-Host "  [WARN] Arranque: $s item(s) sin firma valida" -ForegroundColor Yellow }
+    else                { Write-Host "  [ALERTA] Arranque: $s items sin firma valida" -ForegroundColor Red }
+}
+if ($report.Contains('Hardware')) {
+    $discosMalos = @($report.Hardware.Disks | Where-Object { $_.HealthStatus -ne 'Healthy' }).Count
+    if ($discosMalos -eq 0) { Write-Host "  [OK]   Discos: saludables" -ForegroundColor Green }
+    else                    { Write-Host "  [ALERTA] Discos: $discosMalos disco(s) con problemas" -ForegroundColor Red }
+
+    if ($null -ne $report.Hardware.WearPct) {
+        $w = $report.Hardware.WearPct
+        if ($w -lt 20)    { Write-Host "  [OK]   Bateria: desgaste $w%" -ForegroundColor Green }
+        elseif ($w -lt 40){ Write-Host "  [WARN] Bateria: desgaste $w%" -ForegroundColor Yellow }
+        else               { Write-Host "  [ALERTA] Bateria: desgaste $w% (critico)" -ForegroundColor Red }
+    }
+    if ($null -ne $report.Hardware.TempCPU) {
+        $t = $report.Hardware.TempCPU
+        if ($t -lt 75)    { Write-Host "  [OK]   CPU: $t C" -ForegroundColor Green }
+        elseif ($t -lt 90){ Write-Host "  [WARN] CPU: temperatura alta ($t C)" -ForegroundColor Yellow }
+        else               { Write-Host "  [ALERTA] CPU: temperatura critica ($t C)" -ForegroundColor Red }
+    }
+    $discosLlenos = @($report.Hardware.Disks | Where-Object { $_.PctLibre -lt 10 }).Count
+    if ($discosLlenos -gt 0) { Write-Host "  [WARN] Espacio: $discosLlenos unidad(es) con menos del 10% libre" -ForegroundColor Yellow }
+}
+if ($report.Contains('CriticalEvents')) {
+    $e = @($report.CriticalEvents).Count
+    if ($e -eq 0)     { Write-Host "  [OK]   Eventos: sin errores criticos recientes" -ForegroundColor Green }
+    elseif ($e -le 5) { Write-Host "  [WARN] Eventos: $e causa(s) de error en los ultimos 7 dias" -ForegroundColor Yellow }
+    else              { Write-Host "  [ALERTA] Eventos: $e causas de error critico recientes" -ForegroundColor Red }
+}
+if ($report.Contains('SystemState')) {
+    $act = $report.SystemState.Activacion
+    if ($act -eq 'Activado')     { Write-Host "  [OK]   Windows: activado" -ForegroundColor Green }
+    elseif ($act -eq 'Desconocido') { Write-Host "  [WARN] Windows: estado de activacion desconocido" -ForegroundColor Yellow }
+    else                          { Write-Host "  [ALERTA] Windows: no activado" -ForegroundColor Red }
+}
+Write-Host "========================================`n" -ForegroundColor Yellow
+
+$reportPath = New-HtmlReport $report $historyPath $ScriptVersion

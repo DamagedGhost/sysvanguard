@@ -1,4 +1,4 @@
-﻿<#
+<#
     Report.psm1
     Historial local por equipo + reporte HTML.
     Las secciones se generan dinamicamente segun que llaves existan en
@@ -39,7 +39,16 @@ function Save-History($data, $scriptVersion) {
 
 function New-HtmlReport($data, $historyPath, $scriptVersion) {
     Write-Host "`n=== Generando reporte ===" -ForegroundColor Cyan
-    $outPath = "$env:USERPROFILE\Desktop\sondeo-$(Get-Date -Format 'yyyyMMdd-HHmmss').html"
+    # Resuelve el escritorio real: maneja OneDrive, redireccion de carpetas y perfiles corporativos
+    $desktopPath = [Environment]::GetFolderPath('Desktop')
+    if (-not $desktopPath -or -not (Test-Path $desktopPath)) {
+        # Fallback: intentar la ruta estandar del perfil
+        $desktopPath = Join-Path $env:USERPROFILE 'Desktop'
+        if (-not (Test-Path $desktopPath)) {
+            New-Item -Path $desktopPath -ItemType Directory -Force | Out-Null
+        }
+    }
+    $outPath = Join-Path $desktopPath "sondeo-v$scriptVersion-$(Get-Date -Format 'yyyyMMdd-HHmmss').html"
 
     # ---------- Resumen ejecutivo: solo evalua lo que efectivamente corrio ----------
     $resumen = @()
@@ -57,6 +66,18 @@ function New-HtmlReport($data, $historyPath, $scriptVersion) {
         if ($null -ne $data.Hardware.WearPct) {
             $resumen += Get-Semaforo ($data.Hardware.WearPct -lt 20) "Bateria OK ($($data.Hardware.WearPct)%)" "Bateria con desgaste ($($data.Hardware.WearPct)%)" "Bateria muy desgastada ($($data.Hardware.WearPct)%)" ($data.Hardware.WearPct -lt 40)
         }
+        if ($null -ne $data.Hardware.TempCPU) {
+            $t = $data.Hardware.TempCPU
+            $resumen += Get-Semaforo ($t -lt 75) "CPU: $t C (normal)" "CPU: temperatura alta ($t C)" "CPU: temperatura critica ($t C)" ($t -lt 90)
+        }
+        if ($data.Hardware.LogicalDisks) {
+            $discosLlenos = @($data.Hardware.LogicalDisks | Where-Object { $_.PctLibre -ne $null -and $_.PctLibre -lt 10 })
+            if ($discosLlenos.Count -gt 0) {
+                $resumen += @{ Clase = 'warn'; Texto = "$($discosLlenos.Count) unidad(es) con menos del 10% de espacio libre" }
+            } else {
+                $resumen += @{ Clase = 'ok'; Texto = "Espacio en disco: OK" }
+            }
+        }
     }
     if ($data.Contains('CriticalEvents')) {
         $eventosCount = @($data.CriticalEvents).Count
@@ -72,7 +93,8 @@ function New-HtmlReport($data, $historyPath, $scriptVersion) {
     $secciones = "<h2>Punto de restauracion</h2>`n<p>Estado: $($data.RestorePoint.Status)</p>`n"
 
     if ($data.Contains('Hardware')) {
-        $secciones += "<h2>Hardware</h2>`n$($data.Hardware.Disks | ConvertTo-Html -Fragment)`n<p>Estado de bateria: $($data.Hardware.BatteryStatus)</p>`n"
+        $tempHtml = if ($null -ne $data.Hardware.TempCPU) { "<p>Temperatura CPU (zona termica max): <strong>$($data.Hardware.TempCPU) C</strong></p>`n" } else { "<p>Temperatura CPU: no disponible en este equipo (limitacion del driver).</p>`n" }
+        $secciones += "<h2>Hardware</h2>`n<h3>Discos fisicos</h3>`n$($data.Hardware.Disks | ConvertTo-Html -Fragment)`n<h3>Espacio en unidades logicas</h3>`n$($data.Hardware.LogicalDisks | ConvertTo-Html -Fragment)`n$tempHtml<p>Estado de bateria: $($data.Hardware.BatteryStatus)</p>`n"
     }
     if ($data.Contains('Persistence')) {
         $secciones += "<h2>Arranque / persistencia</h2>`n<input type='text' class='filtro' placeholder='Filtrar arranque...' onkeyup=`"filtrarTabla(this,'tabla-startup')`">`n<div id='tabla-startup'>`n$($data.Persistence | ConvertTo-Html -Fragment)`n</div>`n"

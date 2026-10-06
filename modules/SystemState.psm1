@@ -1,4 +1,4 @@
-﻿<#
+<#
     SystemState.psm1
     Estado general (uptime/activacion), inventario de programas y
     errores criticos agrupados por causa (Proveedor+Id), no por fila cruda.
@@ -9,6 +9,7 @@ function Get-SystemState {
     $os = Get-CimInstance Win32_OperatingSystem
     $uptime = (Get-Date) - $os.LastBootUpTime
     $lastUpdate = Get-HotFix -ErrorAction SilentlyContinue | Sort-Object InstalledOn -Descending | Select-Object -First 1
+    $ultimoUpdate = if ($lastUpdate -and $lastUpdate.InstalledOn) { $lastUpdate.InstalledOn } else { "No hay hotfixes registrados" }
 
     $activation = "Desconocido"
     try {
@@ -21,7 +22,7 @@ function Get-SystemState {
         Build          = $os.Version
         UltimoArranque = $os.LastBootUpTime
         UptimeDias     = [math]::Round($uptime.TotalDays, 1)
-        UltimoUpdate   = $lastUpdate.InstalledOn
+        UltimoUpdate   = $ultimoUpdate
         Activacion     = $activation
     }
 

@@ -1,4 +1,4 @@
-﻿<#
+<#
     Defender.psm1
     Antivirus instalado (SecurityCenter2) + escaneo rapido con timeout duro
     (Start-MpScan no tiene timeout y se puede colgar en la fase de reporte
@@ -30,17 +30,29 @@ function Invoke-DefenderScan {
             Sort-Object FullName -Descending | Select-Object -First 1 -ExpandProperty FullName
     }
 
-    $timeoutSeconds = 600
+    $timeoutSeconds = 300
     $threats = @()
     $resultado = "No ejecutado"
 
     if ($mpCmdRun -and (Test-Path $mpCmdRun)) {
         Write-Host "Iniciando quick scan via MpCmdRun.exe (timeout: $($timeoutSeconds/60) min)..."
-        $proc = Start-Process -FilePath $mpCmdRun -ArgumentList "-Scan -ScanType 1" -PassThru -WindowStyle Hidden
-        $terminoATiempo = $proc.WaitForExit($timeoutSeconds * 1000)
+
+        # Correr en un Job separado para que un eventual cuelgue de MpCmdRun
+        # no congele el hilo principal de PowerShell.
+        $scanJob = Start-Job -ScriptBlock {
+            param($exe)
+            $p = Start-Process -FilePath $exe -ArgumentList "-Scan -ScanType 1" `
+                               -PassThru -NoNewWindow -Wait
+            return $p.ExitCode
+        } -ArgumentList $mpCmdRun
+
+        $terminoATiempo = Wait-Job -Job $scanJob -Timeout $timeoutSeconds
 
         if ($terminoATiempo) {
-            $resultado = "Completado (codigo $($proc.ExitCode))"
+            $exitCode = Receive-Job -Job $scanJob
+            Remove-Job  -Job $scanJob -Force
+
+            $resultado = "Completado (codigo $exitCode)"
 
             $detecciones = Get-MpThreatDetection
             $catalogo    = Get-MpThreat -ErrorAction SilentlyContinue
@@ -57,7 +69,13 @@ function Invoke-DefenderScan {
             }
         } else {
             Write-Host "El scan no termino en $($timeoutSeconds/60) min, se aborta para no bloquear el sondeo." -ForegroundColor Yellow
-            try { $proc.Kill() } catch {}
+            # Matar el proceso MpCmdRun que vive dentro del job antes de eliminar el job
+            try {
+                $childPid = (Get-Job -Id $scanJob.Id).ChildJobs[0].JobStateInfo
+                # Forzar cierre de cualquier MpCmdRun que siga en pie
+                Get-Process -Name MpCmdRun -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+            } catch {}
+            Remove-Job -Job $scanJob -Force
             $resultado = "No completado (timeout $($timeoutSeconds/60) min)"
         }
     } else {
