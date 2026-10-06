@@ -10,7 +10,8 @@
                            Nombres disponibles en config/presets.psd1 (ej: Rapido, Completo).
 #>
 param(
-    [string]$Preset = ""
+    [Alias("Preset")]
+    [string]$PresetName = ""
 )
 
 $ScriptVersion = "0.6.0"
@@ -32,14 +33,16 @@ $stepMap = [ordered]@{
 }
 
 function Show-Menu {
-    # Si se paso -Preset por CLI, usarlo directamente sin interaccion
-    if ($script:Preset -and $presets.Contains($script:Preset)) {
+    param([string]$NombrePreset = "")
+
+    # Si se paso preset por CLI, usarlo directamente sin interaccion
+    if ($NombrePreset -and $presets.Contains($NombrePreset)) {
         Write-Host "`n=== SONDEO SYSVANGUARD (v$ScriptVersion) ===" -ForegroundColor Yellow
-        Write-Host "Preset seleccionado via parametro: $($script:Preset)" -ForegroundColor DarkGray
-        return $presets[$script:Preset]
+        Write-Host "Preset seleccionado via parametro: $NombrePreset" -ForegroundColor DarkGray
+        return $presets[$NombrePreset]
     }
-    if ($script:Preset -and -not $presets.Contains($script:Preset)) {
-        Write-Host "Preset '$($script:Preset)' no encontrado. Presets disponibles: $($presets.Keys -join ', ')" -ForegroundColor Red
+    if ($NombrePreset -and -not $presets.Contains($NombrePreset)) {
+        Write-Host "Preset '$NombrePreset' no encontrado. Presets disponibles: $($presets.Keys -join ', ')" -ForegroundColor Red
     }
 
     Write-Host "`n=== SONDEO SYSVANGUARD (v$ScriptVersion) ===" -ForegroundColor Yellow
@@ -58,7 +61,7 @@ function Show-Menu {
     return $presets[$keys[$idx]]
 }
 
-$preset = Show-Menu
+$presetActivo = Show-Menu -NombrePreset $PresetName
 $report = [ordered]@{}
 
 # ---------- Punto de restauracion: decision de sesion, no de preset ----------
@@ -75,7 +78,7 @@ if (Test-RestorePointToday) {
 }
 
 # ---------- Pasos del preset elegido ----------
-foreach ($pasoNombre in $preset.Pasos) {
+foreach ($pasoNombre in $presetActivo.Pasos) {
     if ($pasoNombre -eq 'SystemState') {
         $report.SystemState    = Get-SystemState
         $report.CriticalEvents = Get-CriticalEvents
@@ -124,8 +127,10 @@ if ($report.Contains('Hardware')) {
         elseif ($t -lt 90){ Write-Host "  [WARN] CPU: temperatura alta ($t C)" -ForegroundColor Yellow }
         else               { Write-Host "  [ALERTA] CPU: temperatura critica ($t C)" -ForegroundColor Red }
     }
-    $discosLlenos = @($report.Hardware.Disks | Where-Object { $_.PctLibre -lt 10 }).Count
-    if ($discosLlenos -gt 0) { Write-Host "  [WARN] Espacio: $discosLlenos unidad(es) con menos del 10% libre" -ForegroundColor Yellow }
+    if ($report.Hardware.LogicalDisks) {
+        $discosLlenos = @($report.Hardware.LogicalDisks | Where-Object { $_.PctLibre -ne $null -and $_.PctLibre -lt 10 }).Count
+        if ($discosLlenos -gt 0) { Write-Host "  [WARN] Espacio: $discosLlenos unidad(es) con menos del 10% libre" -ForegroundColor Yellow }
+    }
 }
 if ($report.Contains('CriticalEvents')) {
     $e = @($report.CriticalEvents).Count

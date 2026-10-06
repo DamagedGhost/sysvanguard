@@ -1,8 +1,9 @@
 <#
     Defender.psm1
-    Antivirus instalado (SecurityCenter2) + escaneo rapido con timeout duro
-    (Start-MpScan no tiene timeout y se puede colgar en la fase de reporte
-    a MAPS/nube, asi que llamamos MpCmdRun.exe directo para poder matarlo).
+    Antivirus instalado (SecurityCenter2) + escaneo rapido con timeout duro.
+    Se utiliza MpCmdRun.exe en proceso independiente con monitoreo via Stopwatch
+    y verificacion de .HasExited sin bloquear el hilo de PowerShell, evitando
+    cuelgues por WinRM o pipes heredados.
 #>
 
 function Get-InstalledAntivirus {
@@ -21,8 +22,20 @@ function Get-InstalledAntivirus {
 
 function Invoke-DefenderScan {
     Write-Host "`n=== Escaneo con Windows Defender ===" -ForegroundColor Cyan
-    $status = Get-MpComputerStatus
+    $status = Get-MpComputerStatus -ErrorAction SilentlyContinue
+
+    if (-not $status) {
+        Write-Host "No se pudo consultar el estado de Windows Defender." -ForegroundColor Yellow
+        return [ordered]@{ Status = $null; Threats = @(); Resultado = "Estado de Defender no disponible" }
+    }
+
     Write-Host "Firmas actualizadas: $($status.AntivirusSignatureLastUpdated)"
+
+    # Si Defender esta apagado o en modo pasivo (p. ej. por AV de terceros), no ejecutar scan
+    if ($status.AntivirusEnabled -eq $false -or $status.AMServiceEnabled -eq $false) {
+        Write-Host "Windows Defender esta desactivado o en modo pasivo (antivirus de terceros o servicio inactivo)." -ForegroundColor Yellow
+        return [ordered]@{ Status = $status; Threats = @(); Resultado = "Defender desactivado o en modo pasivo" }
+    }
 
     $mpCmdRun = "$env:ProgramFiles\Windows Defender\MpCmdRun.exe"
     if (-not (Test-Path $mpCmdRun)) {
@@ -35,47 +48,41 @@ function Invoke-DefenderScan {
     $resultado = "No ejecutado"
 
     if ($mpCmdRun -and (Test-Path $mpCmdRun)) {
-        Write-Host "Iniciando quick scan via MpCmdRun.exe (timeout: $($timeoutSeconds/60) min)..."
+        Write-Host "Iniciando quick scan via MpCmdRun.exe (timeout: $($timeoutSeconds/60) min)..." -NoNewline
 
-        # Correr en un Job separado para que un eventual cuelgue de MpCmdRun
-        # no congele el hilo principal de PowerShell.
-        $scanJob = Start-Job -ScriptBlock {
-            param($exe)
-            $p = Start-Process -FilePath $exe -ArgumentList "-Scan -ScanType 1" `
-                               -PassThru -NoNewWindow -Wait
-            return $p.ExitCode
-        } -ArgumentList $mpCmdRun
+        # Proceso desacoplado sin Start-Job (evita fallos de WinRM / PSSessionStateBroken)
+        # y sin WaitForExit bloqueante (evita deadlock de descriptores en .NET)
+        $proc = Start-Process -FilePath $mpCmdRun -ArgumentList "-Scan -ScanType 1" -PassThru -WindowStyle Hidden
 
-        $terminoATiempo = Wait-Job -Job $scanJob -Timeout $timeoutSeconds
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        while (-not $proc.HasExited -and $sw.Elapsed.TotalSeconds -lt $timeoutSeconds) {
+            Start-Sleep -Seconds 2
+            Write-Host "." -NoNewline
+        }
+        Write-Host ""
 
-        if ($terminoATiempo) {
-            $exitCode = Receive-Job -Job $scanJob
-            Remove-Job  -Job $scanJob -Force
+        if ($proc.HasExited) {
+            $resultado = "Completado (codigo $($proc.ExitCode))"
 
-            $resultado = "Completado (codigo $exitCode)"
-
-            $detecciones = Get-MpThreatDetection
+            $detecciones = Get-MpThreatDetection -ErrorAction SilentlyContinue
             $catalogo    = Get-MpThreat -ErrorAction SilentlyContinue
 
-            $threats = foreach ($d in $detecciones) {
-                $info = $catalogo | Where-Object { $_.ThreatID -eq $d.ThreatID } | Select-Object -First 1
-                [PSCustomObject]@{
-                    Proceso   = $d.ProcessName
-                    Nombre    = if ($info) { $info.ThreatName } else { "Desconocido (ID $($d.ThreatID))" }
-                    Severidad = if ($info) { $info.SeverityID } else { $null }
-                    Detectado = $d.InitialDetectionTime
-                    Usuario   = $d.DomainUser
+            if ($detecciones) {
+                $threats = foreach ($d in $detecciones) {
+                    $info = if ($catalogo) { $catalogo | Where-Object { $_.ThreatID -eq $d.ThreatID } | Select-Object -First 1 } else { $null }
+                    [PSCustomObject]@{
+                        Proceso   = $d.ProcessName
+                        Nombre    = if ($info) { $info.ThreatName } else { "Desconocido (ID $($d.ThreatID))" }
+                        Severidad = if ($info) { $info.SeverityID } else { $null }
+                        Detectado = $d.InitialDetectionTime
+                        Usuario   = $d.DomainUser
+                    }
                 }
             }
         } else {
             Write-Host "El scan no termino en $($timeoutSeconds/60) min, se aborta para no bloquear el sondeo." -ForegroundColor Yellow
-            # Matar el proceso MpCmdRun que vive dentro del job antes de eliminar el job
-            try {
-                $childPid = (Get-Job -Id $scanJob.Id).ChildJobs[0].JobStateInfo
-                # Forzar cierre de cualquier MpCmdRun que siga en pie
-                Get-Process -Name MpCmdRun -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-            } catch {}
-            Remove-Job -Job $scanJob -Force
+            try { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue } catch {}
+            try { Get-Process -Name MpCmdRun -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } catch {}
             $resultado = "No completado (timeout $($timeoutSeconds/60) min)"
         }
     } else {

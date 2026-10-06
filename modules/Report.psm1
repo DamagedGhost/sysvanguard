@@ -28,7 +28,18 @@ function Save-History($data, $scriptVersion) {
 
     $history = @()
     if (Test-Path $historyPath) {
-        try { $history = @(Get-Content $historyPath -Raw | ConvertFrom-Json) } catch { $history = @() }
+        try {
+            $parsed = Get-Content $historyPath -Raw | ConvertFrom-Json
+            $flatten = {
+                param($item)
+                if ($item -and $item.PSObject.Properties['value']) {
+                    foreach ($sub in $item.value) { & $flatten $sub }
+                } elseif ($item -and $item.PSObject.Properties['Fecha']) {
+                    $item
+                }
+            }
+            $history = @(& $flatten $parsed)
+        } catch { $history = @() }
     }
     $history += $entry
     ($history | ConvertTo-Json -Depth 4) | Out-File -FilePath $historyPath -Encoding UTF8
