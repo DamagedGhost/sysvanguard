@@ -1,81 +1,110 @@
 # SysVanguard
 
-Herramienta de sondeo diagnóstico para PCs con Windows, pensada para soporte técnico informal. Estrictamente Windows — nada de modding ni desbloqueo de equipos, y sin desarme físico.
+Suite modular de diagnóstico, benchmark y optimización técnica para PCs con Windows, pensada para soporte técnico profesional e independiente. Estrictamente Windows — nada de modding destructivo ni desbloqueo de equipos, y sin desarme físico.
 
 ## Filosofía del proyecto
 
-SysVanguard está separado en dos fases que **nunca se ejecutan juntas**:
+SysVanguard está separado en fases que **nunca se ejecutan a ciegas juntas**:
 
-- **Sondeo**: diagnóstico de solo lectura. La única acción automática que ejecuta es el punto de restauración — no limpia, no desinstala, no repara nada por sí solo. Su trabajo es decirte dónde meter mano, no meter mano por ti.
-- **Acciones / Tweaks**: limpieza, remoción de bloatware, ajustes de arranque. Se ejecuta aparte, a mano, referenciando lo que el sondeo encontró — nunca a ciegas.
+1. **Sondeo (Auditoría / Diagnóstico)**: diagnóstico de solo lectura. La única acción que ejecuta es el punto de restauración previo. Su trabajo es auditar e indicar el estado real del equipo.
+2. **Medición de Rendimiento (Benchmark)**: captura de métricas cuantitativas en reposo (baseline stand-by) y pruebas de estrés térmico para comparar antes y después de cualquier intervención.
+3. **Acciones / Tweaks**: optimización y mitigación curada mediante catálogo declarativo (`config/essential.json`), siempre con respaldo y posibilidad de reversión.
+4. **Instalador de Software (Próximamente)**: despliegue de herramientas esenciales de mantenimiento y software estándar mediante WinGet.
 
-Si el sondeo alguna vez empieza a "arreglar cosas solo", dejó de cumplir su propósito.
-
-## Requisitos
-
-- Windows 10 u 11 (ver sección de compatibilidad).
-- Windows PowerShell 5.1 — viene instalada de fábrica, no requiere PowerShell 7.
-- Permisos de administrador.
-
-## Cómo correrlo
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\sondeo.ps1
-```
-
-1. Elige un preset del menú numerado.
-2. Si no existe un punto de restauración creado hoy, te pregunta si quieres uno antes de continuar.
-3. Al terminar, se abre solo un reporte HTML en el escritorio (`sondeo-AAAAMMDD-HHMMSS.html`).
-
-## Presets disponibles
-
-| Preset        | Qué corre                                                    | Cuándo usarlo                                  |
-|---------------|---------------------------------------------------------------|--------------------------------------------------|
-| `Rapido`      | Hardware + Arranque                                           | Chequeo veloz, sin tocar registro extendido      |
-| `SoloLectura` | Hardware + Arranque + Antivirus instalado + Estado del sistema | Diagnóstico completo, sin el escaneo lento        |
-| `Completo`    | Todo lo anterior + escaneo de Windows Defender                 | Cuando sospechas de malware activo (el más lento)|
-
-## Cómo leer el semáforo del reporte
-
-| Categoría                        | Verde                     | Amarillo                        | Rojo                          |
-|-----------------------------------|---------------------------|----------------------------------|--------------------------------|
-| Amenazas (Defender)                | 0 detecciones             | —                                | 1+ detecciones                |
-| Arranque / persistencia            | 0 ítems sin firma válida  | 1–3 ítems sin firma válida       | 4+ ítems sin firma válida      |
-| Discos                             | Todos "Healthy"           | —                                | Cualquier disco no saludable   |
-| Batería (si el equipo tiene)       | <20% de desgaste          | 20–39% de desgaste              | ≥40% de desgaste               |
-| Errores críticos (agrupados)       | 0 causas distintas        | 1–5 causas distintas            | 6+ causas distintas            |
-| Activación de Windows              | Activado                  | Desconocido (ej. KMS sin acceso)| No activado                    |
-
-Los umbrales son un punto de partida definido a criterio propio, no un estándar de la industria. Un evento se cuenta por **causa distinta** (Proveedor+Id agrupado), no por fila cruda: una ráfaga de 100 errores idénticos cuenta como 1, no como 100.
-
-## Seguridad — leer antes de ejecutar
-
-- El script requiere admin y modifica el registro: fuerza `SystemRestorePointCreationFrequency` a 0 para garantizar que siempre pueda crear un punto de restauración, sin esperar el límite de 24h de Windows.
-- El escaneo de Defender llama a `MpCmdRun.exe` directo (no `Start-MpScan`) con un timeout duro de 10 minutos — si se cuelga en la fase de reporte a la nube, el propio script lo mata y sigue, en vez de bloquear la sesión completa.
-- Por ahora **no** se distribuye como one-liner remoto (`irm ... | iex`) — se corre localmente, archivo por archivo. Eso significa que cualquiera puede y debería leer cada `.psm1` antes de correrlo, en vez de confiar a ciegas.
-- El único cambio real al sistema durante el sondeo es el punto de restauración. Todo lo demás (hardware, arranque, antivirus, programas, eventos, estado del sistema) es de solo lectura.
-
-## Compatibilidad
-
-- **Windows 10 / 11**: soportado, sin cambios necesarios.
-- **Windows 7**: no soportado — fin de soporte extendido desde 2023, trae PowerShell 2.0 por defecto (sin `[ordered]@{}` ni varios cmdlets usados acá), y le faltan módulos clave como `Storage` (`Get-PhysicalDisk`).
-
-## Historial
-
-Cada corrida queda registrada en `%ProgramData%\SondeoPC\historial.json` — por equipo, no por usuario, para poder comparar en el mismo PC más adelante.
-
-## Estado del proyecto
-
-- Versión actual: `0.5.0`.
-- Pendiente: módulo de Acciones/Tweaks con selección curada propia (no aplicación automática del catálogo completo de ningún tercero).
-
-## Referencias
-
-- [Sysinternals Autoruns](https://learn.microsoft.com/sysinternals/downloads/autoruns) — inspiración para la auditoría de persistencia.
-- [Microsoft Defender PowerShell module](https://learn.microsoft.com/powershell/module/defender/) — `Get-MpThreatDetection`, `Get-MpThreat`, `Get-MpComputerStatus`.
-- [WMI SecurityCenter2 (AntiVirusProduct)](https://learn.microsoft.com/windows/win32/api/) — detección de antivirus instalado.
-- [ManagementDateTimeConverter Class](https://learn.microsoft.com/dotnet/api/system.management.managementdatetimeconverter) — conversión de fechas DMTF de WMI.
+Si una herramienta de diagnóstico empieza a "arreglar cosas sola" sin consentimiento informado, dejó de cumplir su propósito.
 
 ---
 
-*Nota: parte de la documentación de este README fue redactada con asistencia de IA, usada única y exclusivamente para redacción técnica y comprensión de documentos.*
+## Estructura del Proyecto
+
+```text
+sysvanguard/
+│
+├── config/
+│   ├── presets.psd1           # Presets del sondeo (Rapido, SoloLectura, Completo)
+│   ├── essential.json         # Catálogo curado de tweaks (Seguros, RiesgoMedio, RiesgoCritico)
+│   └── tweaks.json            # Catálogo completo de referencia (WinUtil)
+│
+├── modules/
+│   ├── Audit/                 # Diagnóstico de solo lectura
+│   │   ├── Hardware.psm1      # Salud de discos, batería, espacio y temperatura
+│   │   ├── Persistence.psm1   # Claves Run, carpeta Inicio y tareas programadas
+│   │   ├── SystemState.psm1   # Uptime, activación, eventos críticos e inventario
+│   │   └── Defender.psm1      # Detección de AV y escaneo rápido no bloqueante
+│   │
+│   ├── Actions/               # Intervención y modificación controlada
+│   │   ├── RestorePoint.psm1  # Puntos de restauración e idempotencia
+│   │   └── Tweaks.psm1        # Motor de aplicación y reversión de optimizaciones
+│   │
+│   ├── Benchmark/             # Medición de rendimiento
+│   │   └── Benchmark.psm1     # Muestreo de reposo y estrés térmico
+│   │
+│   └── Report/                # Documentación de resultados
+│       └── Report.psm1        # Reporte HTML interactivo e historial JSON
+│
+├── sysvanguard.ps1            # LANZADOR PRINCIPAL (Menú unificado de la suite)
+├── sondeo.ps1                 # Punto de entrada directo al sondeo diagnóstico
+└── README.md
+```
+
+---
+
+## Requisitos
+
+- Windows 10 u 11 (64-bit).
+- Windows PowerShell 5.1 (incluida en el sistema, no requiere instalar PowerShell 7).
+- Permisos de administrador.
+
+---
+
+## Cómo ejecutarlo
+
+### Lanzador Principal (Menú Completo)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\sysvanguard.ps1
+```
+
+### Acceso Directo al Sondeo
+```powershell
+powershell -ExecutionPolicy Bypass -File .\sondeo.ps1
+```
+También admite ejecución desatendida mediante el parámetro `-Preset`:
+```powershell
+powershell -ExecutionPolicy Bypass -File .\sondeo.ps1 -Preset Rapido
+powershell -ExecutionPolicy Bypass -File .\sondeo.ps1 -Preset Completo
+```
+
+---
+
+## Presets de Sondeo
+
+| Preset | Qué audita | Cuándo usarlo |
+|---|---|---|
+| `Rapido` | Hardware + Persistencia de arranque | Chequeo veloz inicial |
+| `SoloLectura` | Hardware + Persistencia + Antivirus + Estado del sistema | Diagnóstico completo sin escaneo largo |
+| `Completo` | Todo lo anterior + Escaneo de Windows Defender | Auditoría integral profunda |
+
+---
+
+## Catálogo de Tweaks (`config/essential.json`)
+
+Los ajustes de optimización se basan en la herramienta de código abierto **WinUtil** de **Chris Titus Tech** (Licencia MIT) y se encuentran estrictamente categorizados por nivel de impacto:
+
+- **Seguros (12 ajustes)**: Cero impacto funcional negativo. Mejoras ergonómicas (finalizar tarea en barra, mostrar extensiones), privacidad básica y desactivación de descargas promocionales.
+- **Riesgo Medio (3 ajustes)**: Telemetría DiagTrack, Widgets de barra de tareas y umbral de memoria SvcHost. Requieren informar al usuario sobre posibles avisos en Configuración o pérdida del panel del clima.
+- **Riesgo Crítico (4 ajustes)**: Permisos ACL en tienda, `/ResetBase` en DISM, bloqueo total de apps en segundo plano y remoción de IA/OfficeHub. **Solo para técnicos en escenarios específicos**, ya que pueden afectar notificaciones de WhatsApp o la capacidad de desinstalar actualizaciones.
+
+---
+
+## Historial y Reportes
+
+- **Reportes HTML:** Se generan automáticamente en el Escritorio del usuario (`sondeo-vX.X.X-AAAAMMDD-HHMMSS.html`).
+- **Historial del equipo:** Se almacena en `%ProgramData%\SondeoPC\historial.json` para permitir comparaciones longitudinales en el mismo PC a lo largo del tiempo.
+
+---
+
+## Referencias y Agradecimientos
+
+- [Chris Titus Tech (WinUtil)](https://github.com/ChrisTitusTech/winutil) — Catálogo de directivas y ajustes de optimización (MIT License).
+- [Sysinternals Autoruns](https://learn.microsoft.com/sysinternals/downloads/autoruns) — Inspiración para la auditoría de persistencia de inicio.
+- [Microsoft Defender PowerShell module](https://learn.microsoft.com/powershell/module/defender/) — Monitoreo de seguridad y escaneo.

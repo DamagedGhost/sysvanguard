@@ -1,0 +1,713 @@
+{
+  "_metadata": {
+    "proyecto": "SysVanguard",
+    "descripcion": "Catálogo de optimizaciones y ajustes (tweaks) clasificados por nivel de impacto y riesgo técnico para Windows.",
+    "autor_original": "Chris Titus (ChrisTitusTech)",
+    "herramienta_original": "WinUtil (Windows Utility)",
+    "repositorio_original": "https://github.com/ChrisTitusTech/winutil",
+    "licencia": "MIT License",
+    "documentacion_original": "https://winutil.christitus.com",
+    "nota_uso": "No ejecutar de forma indiscriminada. En entornos de soporte o clientes cotidianos, aplicar únicamente la sección 'Seguros'. Las secciones 'RiesgoMedio' y 'RiesgoCritico' requieren evaluación previa del caso de uso."
+  },
+  "Seguros": {
+    "WPFTweaksEndTaskOnTaskbar": {
+      "nombre": "Finalizar tarea con clic derecho en la barra de tareas",
+      "descripcion": "Habilita la opción nativa de Windows 11 para cerrar procesos colgados directamente desde la barra de tareas sin tener que abrir el Administrador de tareas.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Función nativa estándar de Windows 11.",
+      "fuente_original": {
+        "id": "WPFTweaksEndTaskOnTaskbar",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/endtaskontaskbar"
+      },
+      "registry": [
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarDeveloperSettings",
+          "Name": "TaskbarEndTask",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ]
+    },
+    "WPFTweaksConsumerFeatures": {
+      "nombre": "Desactivar instalación de aplicaciones promocionales (Consumer Features)",
+      "descripcion": "Evita que Windows descargue e instale automáticamente juegos y aplicaciones de terceros no solicitadas (como Candy Crush, TikTok o Spotify) tras iniciar sesión o recibir actualizaciones del sistema.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Aplica una directiva oficial de directiva de grupo (GPO).",
+      "fuente_original": {
+        "id": "WPFTweaksConsumerFeatures",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/consumerfeatures"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\CloudContent",
+          "Name": "DisableWindowsConsumerFeatures",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ]
+    },
+    "WPFTweaksDeliveryOptimization": {
+      "nombre": "Desactivar optimización de distribución P2P de actualizaciones",
+      "descripcion": "Impide que Windows utilice el ancho de banda de subida del equipo para enviar actualizaciones a otros ordenadores a través de internet, reservando toda la conexión para el usuario.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Las actualizaciones de Windows continuarán descargándose normalmente desde los servidores directos de Microsoft.",
+      "fuente_original": {
+        "id": "WPFTweaksDeliveryOptimization",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/deliveryoptimization"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization",
+          "Name": "DODownloadMode",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ]
+    },
+    "WPFTweaksActivity": {
+      "nombre": "Desactivar historial de actividad en la nube",
+      "descripcion": "Evita que Windows recopile y suba el historial de tareas y navegación a los servidores de Microsoft, manteniendo intacto el portapapeles local de Windows (Win + V).",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. No afecta el portapapeles local ni el historial de archivos recientes del explorador.",
+      "fuente_original": {
+        "id": "WPFTweaksActivity",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/activity"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+          "Name": "EnableActivityFeed",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+          "Name": "PublishUserActivities",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+          "Name": "UploadUserActivities",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ]
+    },
+    "WPFTweaksDeleteTempFiles": {
+      "nombre": "Limpieza de carpetas temporales del sistema",
+      "descripcion": "Elimina archivos residuales y cachés obsoletos acumulados en las carpetas temporales del usuario (%TEMP%) y del sistema (C:\\Windows\\Temp) para recuperar espacio en disco.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Los archivos que se encuentren actualmente en uso por procesos activos se omiten de forma segura.",
+      "fuente_original": {
+        "id": "WPFTweaksDeleteTempFiles",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/deletetempfiles"
+      },
+      "InvokeScript": [
+        "Remove-Item -Path \"$Env:Temp\\*\" -Recurse -Force -ErrorAction SilentlyContinue",
+        "Remove-Item -Path \"$Env:SystemRoot\\Temp\\*\" -Recurse -Force -ErrorAction SilentlyContinue"
+      ]
+    },
+    "WPFTweaksEdgeDebloat": {
+      "nombre": "Desactivar funciones innecesarias y telemetría en Microsoft Edge",
+      "descripcion": "Aplica directivas oficiales (GPO) para desactivar el asistente de compras, promociones internas, servicios de crédito/billetera, widgets laterales y recopilación de datos diagnósticos en Edge, haciendo el navegador más rápido y limpio.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. No rompe la navegación ni extensiones instaladas.",
+      "fuente_original": {
+        "id": "WPFTweaksEdgeDebloat",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/advanced-tweaks/edgedebloat"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\EdgeUpdate",
+          "Name": "CreateDesktopShortcutDefault",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "PersonalizationReportingEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge\\ExtensionInstallBlocklist",
+          "Name": "1",
+          "Value": "ofefcgjbeghpigppfmkologfjadafddi",
+          "Type": "String",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "ShowRecommendationsEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "HideFirstRunExperience",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "UserFeedbackAllowed",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "ConfigureDoNotTrack",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "AlternateErrorPagesEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "EdgeCollectionsEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "EdgeShoppingAssistantEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "MicrosoftEdgeInsiderPromotionEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "ShowMicrosoftRewards",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "WebWidgetAllowed",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "DiagnosticData",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "EdgeAssetDeliveryServiceEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "WalletDonationEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Edge",
+          "Name": "DefaultBrowserSettingsCampaignEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ]
+    },
+    "WPFTweaksBraveDebloat": {
+      "nombre": "Desactivar funciones innecesarias en Brave Browser",
+      "descripcion": "Desactiva mediante políticas oficiales la cartera de criptomonedas (Brave Wallet), Brave Rewards, anuncios patrocinados, chat de IA Leo y telemetría en el navegador Brave.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Si el usuario utiliza activamente las funciones cripto de Brave, no debería aplicarse.",
+      "fuente_original": {
+        "id": "WPFTweaksBraveDebloat",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/advanced-tweaks/bravedebloat"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveRewardsDisabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveWalletDisabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveVPNDisabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveAIChatEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveStatsPingEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveNewsDisabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveTalkDisabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "TorDisabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "BraveP3AEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "UrlKeyedAnonymizedDataCollectionEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "SafeBrowsingExtendedReportingEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\BraveSoftware\\Brave",
+          "Name": "MetricsReportingEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ]
+    },
+    "WPFToggleBingSearch": {
+      "nombre": "Desactivar búsqueda web de Bing en el menú Inicio",
+      "descripcion": "Fuerza a que las búsquedas del menú Inicio se limiten a programas y archivos locales del equipo, eliminando el retraso de consultar internet y evitando mostrar noticias o publicidad de Bing.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. La búsqueda local se vuelve significativamente más rápida y privada.",
+      "fuente_original": {
+        "id": "WPFToggleBingSearch",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/bingsearch"
+      },
+      "registry": [
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search",
+          "Name": "BingSearchEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "1",
+          "Descripcion": "0 desactiva la búsqueda web en el menú inicio; 1 la restaura."
+        }
+      ]
+    },
+    "WPFToggleShowExt": {
+      "nombre": "Mostrar siempre extensiones de archivo en el Explorador",
+      "descripcion": "Hace visibles las extensiones (.exe, .pdf, .docx, etc.) en todos los nombres de archivo. Medida básica de seguridad para evitar engaños con archivos maliciosos de doble extensión (ej. archivo.pdf.exe).",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Muy recomendada para soporte técnico y seguridad cotidiana.",
+      "fuente_original": {
+        "id": "WPFToggleShowExt",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/showext"
+      },
+      "registry": [
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "Name": "HideFileExt",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "1"
+        }
+      ],
+      "InvokeScript": [
+        "Stop-Process -Name explorer -Force"
+      ],
+      "UndoScript": [
+        "Stop-Process -Name explorer -Force"
+      ]
+    },
+    "WPFToggleLongPaths": {
+      "nombre": "Habilitar soporte para rutas largas (>260 caracteres)",
+      "descripcion": "Elimina el límite tradicional MAX_PATH de 260 caracteres en el sistema de archivos de Windows. Evita fallos de 'Ruta de acceso demasiado larga' al descomprimir archivos ZIP o sincronizar estructuras profundas de carpetas.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Requiere que las aplicaciones individuales soporten la API de rutas largas (todas las modernas lo hacen).",
+      "fuente_original": {
+        "id": "WPFToggleLongPaths",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/longpaths"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+          "Name": "LongPathsEnabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "0"
+        }
+      ]
+    },
+    "WPFToggleDetailedBSoD": {
+      "nombre": "Pantalla azul con información técnica detallada (BSoD Verbose)",
+      "descripcion": "Configura Windows para que, en caso de producirse un error crítico de detención (pantalla azul), muestre el código de error numérico exacto y los parámetros de memoria en lugar de solo una pantalla simplificada con código QR.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Facilita enormemente el diagnóstico técnico ante fallos de hardware o controladores.",
+      "fuente_original": {
+        "id": "WPFToggleDetailedBSoD",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/detailedbsod"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CrashControl",
+          "Name": "DisplayParameters",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "0"
+        },
+        {
+          "Path": "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CrashControl",
+          "Name": "DisableEmoticon",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "0"
+        }
+      ]
+    },
+    "WPFToggleStickyKeys": {
+      "nombre": "Desactivar atajo de teclas especiales (Sticky Keys)",
+      "descripcion": "Desactiva el cuadro de diálogo emergente de accesibilidad que se activa al presionar la tecla Shift cinco veces seguidas, evitando interrupciones molestas al jugar o escribir rápido.",
+      "categoria_riesgo": "Seguro",
+      "advertencia_riesgo": "Ninguna. Los usuarios con necesidades de accesibilidad motriz pueden reactivarlo desde el panel de accesibilidad.",
+      "fuente_original": {
+        "id": "WPFToggleStickyKeys",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/customize-preferences/stickykeys"
+      },
+      "registry": [
+        {
+          "Path": "HKCU:\\Control Panel\\Accessibility\\StickyKeys",
+          "Name": "Flags",
+          "Value": "506",
+          "Type": "DWord",
+          "OriginalValue": "58"
+        }
+      ]
+    }
+  },
+  "RiesgoMedio": {
+    "WPFTweaksTelemetry": {
+      "nombre": "Desactivar telemetría y diagnóstico de Windows",
+      "descripcion": "Desactiva el servicio DiagTrack (Experiencias del usuario conectado), el servicio de informe de errores (wermgr) y políticas de recolección de diagnósticos.",
+      "categoria_riesgo": "RiesgoMedio",
+      "advertencia_riesgo": "En Windows 10/11 Home y Pro puede provocar que la ventana de Configuración muestre en rojo el aviso 'Algunas de estas opciones están administradas por su organización'. Asimismo, apagar DiagTrack puede interferir con la sincronización de logros en juegos de Xbox Game Pass.",
+      "fuente_original": {
+        "id": "WPFTweaksTelemetry",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/telemetry"
+      },
+      "registry": [
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+          "Name": "Enabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Privacy",
+          "Name": "TailoredExperiencesWithDiagnosticDataEnabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Speech_OneCore\\Settings\\OnlineSpeechPrivacy",
+          "Name": "HasAccepted",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Input\\TIPC",
+          "Name": "Enabled",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\InputPersonalization",
+          "Name": "RestrictImplicitInkCollection",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\InputPersonalization",
+          "Name": "RestrictImplicitTextCollection",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\InputPersonalization\\TrainedDataStore",
+          "Name": "HarvestContacts",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Personalization\\Settings",
+          "Name": "AcceptedPrivacyPolicy",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\DataCollection",
+          "Name": "AllowTelemetry",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced",
+          "Name": "Start_TrackProgs",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+          "Name": "PublishUserActivities",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Siuf\\Rules",
+          "Name": "NumberOfSIUFInPeriod",
+          "Value": "0",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ],
+      "InvokeScript": [
+        "# Deshabilitar envio automatico de muestras en Defender",
+        "Set-MpPreference -SubmitSamplesConsent 2",
+        "# Deshabilitar servicio DiagTrack",
+        "Set-Service -Name diagtrack -StartupType Disabled",
+        "# Deshabilitar servicio de reporte de errores",
+        "Set-Service -Name wermgr -StartupType Disabled",
+        "# Desactivar telemetria de PowerShell 7",
+        "[Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '1', 'Machine')",
+        "Remove-ItemProperty -Path \"HKCU:\\Software\\Microsoft\\Siuf\\Rules\" -Name PeriodInNanoSeconds -ErrorAction SilentlyContinue"
+      ],
+      "UndoScript": [
+        "Set-MpPreference -SubmitSamplesConsent 1",
+        "Set-Service -Name diagtrack -StartupType Automatic",
+        "Set-Service -Name wermgr -StartupType Automatic",
+        "[Environment]::SetEnvironmentVariable('POWERSHELL_TELEMETRY_OPTOUT', '', 'Machine')"
+      ]
+    },
+    "WPFTweaksWidget": {
+      "nombre": "Remover panel de Widgets y Noticias de la barra de tareas",
+      "descripcion": "Desinstala los paquetes MicrosoftWindows.Client.WebExperience y WidgetsPlatformRuntime para eliminar el panel de noticias y clima de la barra de tareas de Windows 11.",
+      "categoria_riesgo": "RiesgoMedio",
+      "advertencia_riesgo": "Elimina permanentemente el botón del clima y noticias de la barra de tareas. En Windows 11 23H2 y 24H2 puede remover contenido dinámico de la pantalla de bloqueo. (Nota: el script original requería una función interna de WinUtil que fue reemplazada por reinicio directo de Explorer).",
+      "fuente_original": {
+        "id": "WPFTweaksWidget",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/widgets"
+      },
+      "InvokeScript": [
+        "Get-Process *Widget* -ErrorAction SilentlyContinue | Stop-Process -Force",
+        "Get-AppxPackage Microsoft.WidgetsPlatformRuntime -AllUsers -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue",
+        "Get-AppxPackage MicrosoftWindows.Client.WebExperience -AllUsers -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue",
+        "Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue"
+      ],
+      "UndoScript": [
+        "winget install 9MSSGKG348SP --accept-package-agreements --accept-source-agreements",
+        "Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue"
+      ]
+    },
+    "WPFTweaksServices": {
+      "nombre": "Optimizar umbral de memoria para procesos svchost (SvcHostSplitThreshold)",
+      "descripcion": "Modifica el valor SvcHostSplitThresholdInKB en el registro para agrupar servicios en menos procesos svchost.exe según la memoria RAM del equipo, reduciendo el recuento de procesos.",
+      "categoria_riesgo": "RiesgoMedio",
+      "advertencia_riesgo": "Ahorra una cantidad menor de memoria RAM (~100-200 MB), pero si un servicio experimenta un cuelgue o fallo crítico, puede arrastrar y congelar a los otros servicios agrupados en el mismo proceso.",
+      "fuente_original": {
+        "id": "WPFTweaksServices",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/services"
+      },
+      "InvokeScript": [
+        "$Memory = (Get-CimInstance Win32_PhysicalMemory | Measure-Object Capacity -Sum).Sum / 1KB",
+        "Set-ItemProperty -Path \"HKLM:\\SYSTEM\\CurrentControlSet\\Control\" -Name SvcHostSplitThresholdInKB -Value $Memory"
+      ],
+      "UndoScript": [
+        "Set-ItemProperty -Path \"HKLM:\\SYSTEM\\CurrentControlSet\\Control\" -Name SvcHostSplitThresholdInKB -Value 380000"
+      ]
+    }
+  },
+  "RiesgoCritico": {
+    "WPFTweaksDisableStoreSearch": {
+      "nombre": "Bloquear resultados de Microsoft Store en búsqueda (Permisos ACL)",
+      "descripcion": "Aplica una restricción de permisos mediante icacls sobre el archivo de base de datos store.db para impedir que el menú Inicio muestre sugerencias de compra de la tienda.",
+      "categoria_riesgo": "RiesgoCritico",
+      "advertencia_riesgo": "PELIGRO DE ROTURA. En muchas instalaciones de Windows 10 y 11, denegar permisos sobre store.db provoca que la propia aplicación Microsoft Store se cierre sola con error 0x80070005 al iniciar, falle la actualización de aplicaciones instaladas o se corrompa la base de datos de paquetes de usuario.",
+      "fuente_original": {
+        "id": "WPFTweaksDisableStoreSearch",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/disablestoresearch"
+      },
+      "InvokeScript": [
+        "icacls \"$Env:LocalAppData\\Packages\\Microsoft.WindowsStore_8wekyb3d8bbwe\\LocalState\\store.db\" /deny *S-1-1-0:F"
+      ],
+      "UndoScript": [
+        "icacls \"$Env:LocalAppData\\Packages\\Microsoft.WindowsStore_8wekyb3d8bbwe\\LocalState\\store.db\" /grant *S-1-1-0:F"
+      ]
+    },
+    "WPFTweaksDiskCleanup": {
+      "nombre": "Limpieza de disco profunda con purga de copias de seguridad DISM (/ResetBase)",
+      "descripcion": "Ejecuta cleanmgr /VERYLOWDISK y corre DISM con /StartComponentCleanup /ResetBase para purgar componentes antiguos en WinSxS.",
+      "categoria_riesgo": "RiesgoCritico",
+      "advertencia_riesgo": "PELIGRO DE ROTURA. El parámetro /ResetBase elimina de manera IRREVERSIBLE la capacidad de desinstalar la última actualización acumulativa de Windows si llega a causar pantallazos azules o problemas de controladores. Además, consume el 100% de CPU y disco durante 15 a 45 minutos.",
+      "fuente_original": {
+        "id": "WPFTweaksDiskCleanup",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/essential-tweaks/diskcleanup"
+      },
+      "InvokeScript": [
+        "cleanmgr.exe /d C: /VERYLOWDISK",
+        "Dism.exe /online /Cleanup-Image /StartComponentCleanup /ResetBase"
+      ]
+    },
+    "WPFTweaksDisableBGapps": {
+      "nombre": "Desactivar ejecución en segundo plano de aplicaciones de la Microsoft Store",
+      "descripcion": "Deshabilita globalmente el permiso para que las aplicaciones de la Microsoft Store se ejecuten y sincronicen en segundo plano.",
+      "categoria_riesgo": "RiesgoCritico",
+      "advertencia_riesgo": "IMPACTO SEVERO EN USUARIOS COTIDIANOS. Aplicaciones esenciales como WhatsApp Desktop, Telegram, Spotify, Correo y Calendario, y la app de Alarmas y Reloj dejarán de recibir notificaciones y de emitir alarmas si la ventana no está abierta en primer plano.",
+      "fuente_original": {
+        "id": "WPFTweaksDisableBGapps",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/advanced-tweaks/disablebgapps"
+      },
+      "registry": [
+        {
+          "Path": "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications",
+          "Name": "GlobalUserDisabled",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "0"
+        }
+      ]
+    },
+    "WPFTweaksWindowsAI": {
+      "nombre": "Desactivar y desinstalar componentes de IA de Windows (Copilot, Recall)",
+      "descripcion": "Remueve Copilot, desactiva Recall y deshabilita servicios de procesamiento de IA.",
+      "categoria_riesgo": "RiesgoCritico",
+      "advertencia_riesgo": "IMPACTO EN APPS ASOCIADAS. El script original desinstala también el paquete Microsoft.MicrosoftOfficeHub (el portal oficial unificado de Microsoft 365 / Office) y crea claves 'EndOfLife' en el registro que pueden provocar errores de validación de paquetes en Windows Update en versiones 24H2+.",
+      "fuente_original": {
+        "id": "WPFTweaksWindowsAI",
+        "autor": "Chris Titus Tech (WinUtil)",
+        "link": "https://winutil.christitus.com/code-reference/tweaks/advanced-tweaks/windowsai"
+      },
+      "registry": [
+        {
+          "Path": "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
+          "Name": "SettingsPageVisibility",
+          "Value": "hide:aicomponents",
+          "Type": "String",
+          "OriginalValue": "<RemoveEntry>"
+        },
+        {
+          "Path": "HKLM:\\SOFTWARE\\Policies\\WindowsNotepad",
+          "Name": "DisableAIFeatures",
+          "Value": "1",
+          "Type": "DWord",
+          "OriginalValue": "<RemoveEntry>"
+        }
+      ],
+      "InvokeScript": [
+        "$Appx = (Get-AppxPackage MicrosoftWindows.Client.CoreAI).PackageFullName",
+        "$Sid = (Get-LocalUser $Env:UserName).Sid.Value",
+        "New-Item \"HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Appx\\AppxAllUserStore\\EndOfLife\\$Sid\\$Appx\" -Force -ErrorAction SilentlyContinue",
+        "Get-AppxPackage -AllUsers \"*Copilot*\" -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue",
+        "winget uninstall -e --name \"Copilot\" --silent --force --accept-source-agreements 2>$null",
+        "Get-AppxPackage -AllUsers Microsoft.MicrosoftOfficeHub -ErrorAction SilentlyContinue | Remove-AppxPackage -AllUsers -ErrorAction SilentlyContinue",
+        "if ($Appx) { Remove-AppxPackage $Appx -ErrorAction SilentlyContinue }",
+        "Set-Service -Name WSAIFabricSvc -StartupType Disabled -ErrorAction SilentlyContinue",
+        "Disable-WindowsOptionalFeature -FeatureName Recall -Online -NoRestart -ErrorAction SilentlyContinue"
+      ]
+    }
+  }
+}

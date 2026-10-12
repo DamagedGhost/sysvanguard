@@ -19,7 +19,7 @@ $ScriptVersion = "0.6.0"
 $ErrorActionPreference = 'Continue'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-Get-ChildItem "$root\modules\*.psm1" | ForEach-Object { Import-Module $_.FullName -Force }
+Get-ChildItem "$root\modules\*.psm1" -Recurse | ForEach-Object { Import-Module $_.FullName -Force }
 $presets = Import-PowerShellDataFile "$root\config\presets.psd1"
 
 # Mapa paso->funcion. SystemState se maneja aparte porque en realidad
