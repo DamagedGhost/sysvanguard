@@ -10,17 +10,30 @@
 $global:SysVanguardTweaksLocked = $true
 
 function Get-TweakCatalog {
+    param(
+        [string]$Path = ""
+    )
     <#
         Permite inspeccionar de SOLO LECTURA el catalogo clasificado sin modificar el sistema.
     #>
-    $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
-    $catalogPath = Join-Path $root "config\essential.json"
-    if (Test-Path $catalogPath) {
-        return (Get-Content $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json)
-    } else {
-        Write-Host "No se encontro el archivo de catalogo en: $catalogPath" -ForegroundColor Yellow
-        return $null
+    if ($Path -and (Test-Path $Path)) {
+        return (Get-Content $Path -Raw -Encoding UTF8 | ConvertFrom-Json)
     }
+
+    $candidatos = @(
+        (Join-Path (Split-Path -Parent (Split-Path -Parent $PSScriptRoot)) "config\essential.json"),
+        (Join-Path (Get-Location) "config\essential.json"),
+        (Join-Path $PSScriptRoot "..\..\config\essential.json")
+    )
+
+    foreach ($cand in $candidatos) {
+        if ($cand -and (Test-Path $cand)) {
+            return (Get-Content $cand -Raw -Encoding UTF8 | ConvertFrom-Json)
+        }
+    }
+
+    Write-Host "No se encontro el archivo de catalogo config\essential.json" -ForegroundColor Yellow
+    return $null
 }
 
 function Invoke-Tweak {
