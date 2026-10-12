@@ -30,6 +30,7 @@ $stepMap = [ordered]@{
     Persistence = { Get-StartupAudit }
     Antivirus   = { Get-InstalledAntivirus }
     Defender    = { Invoke-DefenderScan }
+    Benchmark   = { Measure-SystemBaseline }
 }
 
 function Show-Menu {
@@ -143,6 +144,17 @@ if ($report.Contains('SystemState')) {
     if ($act -eq 'Activado')     { Write-Host "  [OK]   Windows: activado" -ForegroundColor Green }
     elseif ($act -eq 'Desconocido') { Write-Host "  [WARN] Windows: estado de activacion desconocido" -ForegroundColor Yellow }
     else                          { Write-Host "  [ALERTA] Windows: no activado" -ForegroundColor Red }
+}
+if ($report.Contains('Benchmark') -and $null -ne $report.Benchmark) {
+    $bm = $report.Benchmark
+    if ($null -ne $bm.CpuPromedio) {
+        if ($bm.CpuPromedio -lt 10)     { Write-Host "  [OK]   Reposo: CPU promedio $($bm.CpuPromedio)% (excelente)" -ForegroundColor Green }
+        elseif ($bm.CpuPromedio -lt 25) { Write-Host "  [WARN] Reposo: CPU promedio $($bm.CpuPromedio)% (actividad moderada)" -ForegroundColor Yellow }
+        else                            { Write-Host "  [ALERTA] Reposo: CPU promedio $($bm.CpuPromedio)% (anormalmente alto)" -ForegroundColor Red }
+    }
+    if ($null -ne $bm.RamPctUsoPromedio) {
+        Write-Host "  [INFO] Reposo: RAM ocupada $($bm.RamUsoPromedioGB) GB de $($bm.RamTotalGB) GB ($($bm.RamPctUsoPromedio)%)" -ForegroundColor DarkCyan
+    }
 }
 Write-Host "========================================`n" -ForegroundColor Yellow
 

@@ -26,9 +26,9 @@ function Show-SysVanguardBanner {
 function Show-MainMenu {
     do {
         Show-SysVanguardBanner
-        Write-Host "  1) Sondeo Diagnostico (Auditoria Hardware, Persistencia, Seguridad)" -ForegroundColor White
-        Write-Host "  2) Medicion de Rendimiento (Benchmark en Reposo / Estres Termico)" -ForegroundColor DarkGray
-        Write-Host "  3) Optimizaciones y Tweaks (Catalogo Curado con Respaldo)" -ForegroundColor DarkGray
+        Write-Host "  1) Sondeo Diagnostico (Hardware, Persistencia, Seguridad, Rendimiento)" -ForegroundColor White
+        Write-Host "  2) Medicion de Rendimiento Pasivo (Benchmark Stand-by / Reposo)" -ForegroundColor White
+        Write-Host "  3) [BLOQUEADO] Optimizaciones y Tweaks (Deshabilitado preventivamente)" -ForegroundColor DarkGray
         Write-Host "  4) Salir" -ForegroundColor Red
         Write-Host ""
 
@@ -42,13 +42,58 @@ function Show-MainMenu {
                 Read-Host | Out-Null
             }
             "2" {
-                Write-Host "`n[En desarrollo] El modulo de Benchmark permitira medir baseline en reposo (5 min) y prueba de estres termico." -ForegroundColor Yellow
-                Write-Host "Presione Enter para continuar..." -ForegroundColor DarkGray
+                Write-Host "`n=== Medicion de Rendimiento Pasivo (Stand-by) ===" -ForegroundColor Cyan
+                Write-Host "Mide el uso de CPU, consumo de RAM, temperatura y procesos de fondo sin estres destructivo." -ForegroundColor DarkGray
+                Write-Host "Elige duracion del muestreo:"
+                Write-Host "  1) 60 segundos (Rapido)"
+                Write-Host "  2) 120 segundos (Estandar)"
+                Write-Host "  3) 180 segundos (Exhaustivo)"
+                $selDur = Read-Host "Opcion (1-3, por defecto 1)"
+                $segundos = 60
+                if ($selDur -eq '2') { $segundos = 120 }
+                elseif ($selDur -eq '3') { $segundos = 180 }
+
+                Measure-SystemBaseline -DurationSeconds $segundos -IntervalSeconds 3
+                Write-Host "`nPresione Enter para regresar al menu principal..." -ForegroundColor DarkGray
                 Read-Host | Out-Null
             }
             "3" {
-                Write-Host "`n[En desarrollo] El motor de Tweaks aplicara ajustes desde 'config/essential.json' con punto de restauracion previo." -ForegroundColor Yellow
-                Write-Host "Presione Enter para continuar..." -ForegroundColor DarkGray
+                Clear-Host
+                Write-Host "=================================================================" -ForegroundColor Red
+                Write-Host "       AVISO DE SEGURIDAD: MOTOR DE TWEAKS DESHABILITADO         " -ForegroundColor Yellow
+                Write-Host "=================================================================" -ForegroundColor Red
+                Write-Host "`nPor que esta deshabilitado:" -ForegroundColor Cyan
+                Write-Host "  Para proteger los equipos de clientes y usuarios finales, NINGUNA modificacion"
+                Write-Host "  al registro ni a los servicios de Windows se ejecutara hasta completar la fase"
+                Write-Host "  de pruebas de compatibilidad y verificacion de reversibilidad (Undo)."
+                Write-Host "`nEstado actual del catalogo:" -ForegroundColor Cyan
+                Write-Host "  - Archivo de configuracion: 'config/essential.json'"
+                Write-Host "  - Categorias definidas: Seguros (12), Riesgo Medio (3), Riesgo Critico (4)"
+                Write-Host "  - Estado de ejecucion: 100% BLOQUEADO. Cero modificaciones al sistema."
+                
+                Write-Host ""
+                $verCat = Read-Host "Desea consultar el catalogo en modo SOLO LECTURA? (s/n)"
+                if ($verCat -eq 's') {
+                    $cat = Get-TweakCatalog
+                    if ($cat) {
+                        Write-Host "`n--- SEGUROS (Riesgo Bajo / Cero impacto funcional negativo) ---" -ForegroundColor Green
+                        $cat.Seguros.psobject.properties | ForEach-Object {
+                            Write-Host "  - $($_.Value.nombre)" -ForegroundColor Green
+                            Write-Host "    $($_.Value.descripcion)" -ForegroundColor DarkGray
+                        }
+                        Write-Host "`n--- RIESGO MEDIO (Efectos secundarios moderados) ---" -ForegroundColor Yellow
+                        $cat.RiesgoMedio.psobject.properties | ForEach-Object {
+                            Write-Host "  - $($_.Value.nombre)" -ForegroundColor Yellow
+                            Write-Host "    $($_.Value.descripcion)" -ForegroundColor DarkGray
+                        }
+                        Write-Host "`n--- RIESGO CRITICO (Puede romper funciones en usuarios comunes) ---" -ForegroundColor Red
+                        $cat.RiesgoCritico.psobject.properties | ForEach-Object {
+                            Write-Host "  - $($_.Value.nombre)" -ForegroundColor Red
+                            Write-Host "    PELIGRO: $($_.Value.advertencia_riesgo)" -ForegroundColor DarkRed
+                        }
+                    }
+                }
+                Write-Host "`nPresione Enter para regresar al menu principal..." -ForegroundColor DarkGray
                 Read-Host | Out-Null
             }
             "4" {

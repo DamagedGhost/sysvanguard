@@ -24,6 +24,8 @@ function Save-History($data, $scriptVersion) {
         UptimeDias       = if ($data.Contains('SystemState')) { $data.SystemState.UptimeDias } else { $null }
         DesgasteBateria  = if ($data.Contains('Hardware')) { $data.Hardware.WearPct } else { $null }
         ItemsSospechosos = if ($data.Contains('Persistence')) { @($data.Persistence | Where-Object Sospechoso).Count } else { $null }
+        CpuReposoPromedio = if ($data.Contains('Benchmark') -and $null -ne $data.Benchmark) { $data.Benchmark.CpuPromedio } else { $null }
+        RamUsoPctPromedio = if ($data.Contains('Benchmark') -and $null -ne $data.Benchmark) { $data.Benchmark.RamPctUsoPromedio } else { $null }
     }
 
     $history = @()
@@ -97,11 +99,33 @@ function New-HtmlReport($data, $historyPath, $scriptVersion) {
     if ($data.Contains('SystemState')) {
         $resumen += Get-Semaforo ($data.SystemState.Activacion -eq 'Activado') "Windows activado" "Activacion desconocida" "Windows no activado" ($data.SystemState.Activacion -eq 'Desconocido')
     }
+    if ($data.Contains('Benchmark') -and $null -ne $data.Benchmark) {
+        $bm = $data.Benchmark
+        $resumen += Get-Semaforo ($bm.CpuPromedio -lt 10) "Uso CPU reposo optimo ($($bm.CpuPromedio)%)" "Uso CPU reposo moderado ($($bm.CpuPromedio)%)" "Uso CPU reposo elevado ($($bm.CpuPromedio)%)" ($bm.CpuPromedio -lt 25)
+        $resumen += Get-Semaforo ($bm.RamPctUsoPromedio -lt 75) "Memoria RAM disponible ($($bm.RamPctUsoPromedio)% en uso)" "Memoria RAM ajustada ($($bm.RamPctUsoPromedio)% en uso)" "Memoria RAM saturada ($($bm.RamPctUsoPromedio)% en uso)" ($bm.RamPctUsoPromedio -lt 90)
+    }
 
     $resumenHtml = ($resumen | ForEach-Object { "<li class='$($_.Clase)'>$($_.Texto)</li>" }) -join "`n"
 
     # ---------- Secciones dinamicas ----------
     $secciones = "<h2>Punto de restauracion</h2>`n<p>Estado: $($data.RestorePoint.Status)</p>`n"
+
+    if ($data.Contains('Benchmark') -and $null -ne $data.Benchmark) {
+        $bm = $data.Benchmark
+        $tempBmHtml = if ($null -ne $bm.TemperaturaPromedio) { " | Temp CPU promedio: <strong>$($bm.TemperaturaPromedio) C</strong> (Max: $($bm.TemperaturaMaxima) C)" } else { "" }
+        $topProcsHtml = if ($bm.TopProcesos -and $bm.TopProcesos.Count -gt 0) {
+            "<h3>Procesos con mayor actividad en segundo plano durante el reposo</h3>`n<div id='tabla-benchmark'>`n$($bm.TopProcesos | ConvertTo-Html -Fragment)`n</div>`n"
+        } else { "" }
+
+        $secciones += @"
+<h2>Medicion de rendimiento en reposo (Stand-by Baseline)</h2>
+<p>Duracion del muestreo: <strong>$($bm.DuracionSegundos) segundos</strong> ($($bm.MuestrasTomadas) muestras registradas)</p>
+<p>CPU en reposo: Promedio <strong>$($bm.CpuPromedio)%</strong> (Pico maximo: $($bm.CpuMaximo)%)$tempBmHtml</p>
+<p>Memoria RAM: Promedio en uso <strong>$($bm.RamUsoPromedioGB) GB</strong> de $($bm.RamTotalGB) GB (<strong>$($bm.RamPctUsoPromedio)%</strong>) | Libre: $($bm.RamLibrePromedioGB) GB</p>
+<p>Procesos activos promedio: <strong>$($bm.ProcesosPromedio)</strong></p>
+$topProcsHtml
+"@
+    }
 
     if ($data.Contains('Hardware')) {
         $tempHtml = if ($null -ne $data.Hardware.TempCPU) { "<p>Temperatura CPU (zona termica max): <strong>$($data.Hardware.TempCPU) C</strong></p>`n" } else { "<p>Temperatura CPU: no disponible en este equipo (limitacion del driver).</p>`n" }
